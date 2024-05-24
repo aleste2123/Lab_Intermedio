@@ -1,0 +1,64 @@
+data = pd.read_excel('datos/doble_rendija.xlsx')
+data = data[data.Distancia < 9000]
+
+ii = np.where( data.Voltaje == np.amax(data.Voltaje) )
+Max_ = data.Distancia.iloc[ii]
+Max_[327]
+x = data.Distancia - Max_[327]
+y = data.Voltaje
+
+plt.scatter(x,y)
+plt.xlabel("Distancia (mm)")
+plt.ylabel("Voltaje (V)")
+plt.savefig("Doble_rendija_sin.jpg")
+data = np.loadtxt(Path_)
+x = data[:,0]
+y = data[:,1]
+N = len(x)
+
+sigma = np.random.normal(loc=0,scale=10,size=N)
+sigma = np.abs(sigma)
+print(sigma)
+plt.errorbar(x,y,yerr=sigma,fmt='.',color='r')
+# Definimos el modelo con sus parametros
+def GetModel(x,p):
+
+    A,B,C = p
+
+    y = A*np.cos( B*x )**2 * ( np.sin(C*x)/(C*x) )**2
+
+    return y
+def Chi2(p,x,y,Model):
+    return np.sum( ( ( y - Model(x,p) ) )**2 )
+
+#primer modelo
+p0 = np.ones(3)
+nll = lambda *p: Chi2(*p)
+nll(p0,x,y,GetModel)
+
+result = spo.minimize( nll, p0, args=(x,y,GetModel), options={"disp":True})
+
+if result.success:
+    print('Success!')
+    print(f"x={result.x} y = {result.fun}")
+else:
+    print('could not find a minimum')
+    print(f"x={result.x} y = {result.fun}")
+
+Optparam = result.x
+
+_t = np.linspace(np.min(x),np.max(x),200)
+_y = GetModel(_t,Optparam)
+plt.scatter(x,y)
+plt.plot(_t,_y,color='r')
+plt.xlabel("Distancia (mm)")
+plt.ylabel("Voltaje (V)")
+plt.savefig("Doble rendija.jpg")
+
+ObsChi2 = Chi2(Optparam,x,y,sigma,GetModel)
+ObsChi2
+
+def Chi2Reducido(p,Model):
+    return Chi2(p,x,y,sigma,Model)/(N-len(p))
+Chi2R = Chi2Reducido(param,GetModel1)
+Chi2R
